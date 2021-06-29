@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Pulumi;
 using Pulumi.Aws.S3;
 
@@ -6,7 +7,9 @@ class MyStack : Stack
 {
     public MyStack()
     {
-        // Create an AWS resource (S3 Bucket)
+        // Create the List which will hold the values that will eventually be serialized into a JSON string
+        // NOTE: the configuration of these buckets are purely for show and tell.
+        
         var buckets = new List<Output<BucketData>>();
         for (var i = 0; i < 3; i++)
         {
@@ -39,7 +42,8 @@ class MyStack : Stack
                     }
                 });
 
-            var data = Output.Tuple(bucket.Id, bucket.BucketName, bucket.LifecycleRules).Apply(t =>
+            // create the Apply statement (Promise) to capture the concrete values once they are obtained from the cloud provider.
+            buckets.Add(Output.Tuple(bucket.Id, bucket.BucketName, bucket.LifecycleRules).Apply(t =>
             {
                 var (id, name, rules) = t;
 
@@ -61,11 +65,11 @@ class MyStack : Stack
                 }
 
                 return bucketData;
-            });
-            
-            buckets.Add(data);
+            }));
         }
 
+        // Use All() to ensure pulumi waits until all elements in our array are hydrated and ready for serialization.
+        // Serialize the values to a JSON string and they will be available for a consumer in another stack!
         BucketDataRaw = Output.All(buckets).Apply(x => Newtonsoft.Json.JsonConvert.SerializeObject(x));
     }
 
