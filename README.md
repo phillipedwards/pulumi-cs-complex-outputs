@@ -1,1 +1,0 @@
-# pulumi-cs-complex-outputs
